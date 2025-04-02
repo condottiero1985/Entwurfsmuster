@@ -9,6 +9,11 @@ void Main()
 public abstract class Dokument
 {
 	public int Belegnummer { get; set; }
+	
+	public virtual bool IsValid()
+	{
+		return Belegnummer > 0;
+	}
 }
 
 public class Rechnung : Dokument
@@ -16,9 +21,28 @@ public class Rechnung : Dokument
 
 }
 
+public class Nachnahmerechnung : Rechnung { }
+
+public class Vorausrechnung : Rechnung { }
+
+public class Teilzahlungsrechnung : Rechnung { }
+
+public enum Rechnungstyp
+{
+	Nachnahmerechnung,
+	Vorausrechnung,
+	Teilzahlungsrechnung
+}
+
 public class Gutschrift : Dokument
 {
 	public decimal GutschriftBetrag { get; set; }
+
+	public override bool IsValid()
+	{
+		return base.IsValid()
+		&& GutschriftBetrag > 0;
+	}
 }
 
 public class Lieferschein : Dokument
@@ -35,20 +59,10 @@ public abstract class Fakturierer
 		Dokument dokument = ErzeugeDokument();
 		
 		// ... arbeite mit dem Dokument
-		if(!IsValid(dokument))
+		if(!dokument.IsValid())
 		{
 			throw new ArgumentException("Das zu verarbeitende Dokument ist nicht gültig");
 		}
-	}
-	
-	public virtual bool IsValid(Dokument dokument)
-	{
-		if(dokument.Belegnummer == 0)
-		{
-			return false;
-		}
-		
-		return true;
 	}
 }
 
@@ -58,10 +72,27 @@ public class GutschriftFakturierer : Fakturierer
 	{
 		return new Gutschrift();
 	}
-	
-	public override bool IsValid(Dokument dokument)
+}
+
+public class RechnungFakturierer : Fakturierer
+{
+	public override Dokument ErzeugeDokument()
 	{
-		return base.IsValid(dokument)
-		&& ((Gutschrift)dokument).GutschriftBetrag > 0;
+		return new Rechnung();
+	}
+	
+	public Rechnung ErzeugeRechnung(Rechnungstyp rechnungstyp)
+	{
+		switch (rechnungstyp)
+		{
+			case Rechnungstyp.Nachnahmerechnung:
+				return new Nachnahmerechnung();
+			case Rechnungstyp.Vorausrechnung:
+				return new Vorausrechnung();
+			case Rechnungstyp.Teilzahlungsrechnung:
+				return new Teilzahlungsrechnung();
+			default:
+				return new Rechnung();
+		}
 	}
 }
